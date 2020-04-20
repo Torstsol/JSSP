@@ -19,7 +19,7 @@ public class Ant {
         this.jobs = jobs;
         this.alpha = alpha;
         this.beta = beta;
-        this.current = new Node(-1, -1, -1, -1);
+        this.current = new Node(0, -1, -1, -1);
     }
 
     public void findRoute() {
@@ -31,12 +31,18 @@ public class Ant {
             calculateProbability(current, availableNodes);
             // pick node based on probability
             Node chosen = pickNode(availableNodes);
+            Job chosenJob = jobs.get(chosen.job);
 
+            chosenJob.advance();
             scheduledOperations.add(chosen.job);
-            jobs.get(chosen.job).advance();
-
             this.current = chosen;
-            availableNodes = getAvailableNodes();
+        
+            int chosenIndex = availableNodes.indexOf(chosen);
+            if(chosenJob.hasNextNode()) {
+                availableNodes.set(chosenIndex, chosenJob.getNextNode());
+            } else {
+                availableNodes.remove(chosenIndex);
+            }
         }
     }
 
@@ -51,12 +57,20 @@ public class Ant {
     }
 
     public void calculateProbability(Node current, List<Node> availableNodes) {
-        double sum = 0;
-        for (Node next : availableNodes) {
-            sum += calculateProbability(current, next);
+        
+        double sum = 0.0;
+        double[] ps = new double[availableNodes.size()];
+
+        for(int i = 0; i < availableNodes.size(); i++) {
+            Node next = availableNodes.get(i);
+            double p = calculateProbability(current, next);
+            ps[i] = p;
+            sum += p;
         }
-        for (Node next : availableNodes) {
-            next.addProbability(calculateProbability(current, next) / sum);
+        for(int i = 0; i < availableNodes.size(); i++) {
+            Node next = availableNodes.get(i);
+            double p = ps[i];
+            next.addProbability(p / sum);
         }
     }
 
@@ -74,8 +88,6 @@ public class Ant {
     }
 
     public static int getIndexOnRowCol(int job, int operation) {
-        if (job == -1)
-            return 0;
         return (job * (Model.processingMatrix[0].length) + operation) + 1;
     }
 
